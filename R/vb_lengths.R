@@ -11,6 +11,6 @@
 #' @export
 
 vb_lengths <- function(theta, age) {
- pred_length <- theta["linf"] * (1 - exp(-theta["k"] * (age - theta["t0"])))
+ pred_length <- theta["linf"] * (1 - exp(-theta["k"] * (age)))# - theta["t0"])))
  return(pred_length)
 }

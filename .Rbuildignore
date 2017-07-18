@@ -8,3 +8,4 @@ NEWS\.md
 cran-comments\.md
 \.Rhistory
 \.travis\.yml
+^\.Rproj\.user$

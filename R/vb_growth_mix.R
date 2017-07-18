@@ -3,7 +3,7 @@
 #' @description \code{vb_growth_mix} fits sex-specific growth models where some of the animals are of unknown sex. Optimisation is via the Expectation-Maximisation algorithm. Equality constraints across sexes can be implemented for any combination of parameters using the \code{binding} argument.
 #' @param start.list A list with a list called par containing starting values for: "mixprop", "growth.par" (see Examples).
 #' @param data A data.frame with columns: "age", "length" and "obs.sex". "obs.sex" must have values "female", "male", "unclassified".
-#' @param binding A (4x2) parameter index matrix with rows named (in order): "lnlinf", "lnk", "lnnt0", "lnsigma" and the left column for the female parameter index and right column for male parameter index. Used to impose arbitrary equality constraints across the sexes (see Examples).  
+#' @param binding A (4x2) parameter index matrix with rows named (in order): "lnlinf", "lnk", "lnnt0", "lnsigma" and the left column for the female parameter index and right column for male parameter index. Used to impose arbitrary equality constraints across the sexes (see Examples).
 #' @param maxiter.em Integer for maximum number of EM iterations (1e3 default).
 #' @param reltol Relative tolerance for EM observed data log likelihood convergence (1e-8 default).
 #' @param plot.fit Logical, if TRUE fit plotted per iteration. Red and blue circles are used for known females and males, respectively. Unclassified animals are plotted as triangle with the colour indicating the expected probability of being female or male (FALSE default).
@@ -27,14 +27,14 @@
 #'                       growth_parM = c(linf = 25, k = 0.5, t0 = -1, sigma = 0.1),
 #'                       mat_parF = c(A50 = 5, MR = 2), mat_parM = c(A50 = 3, MR = 2),
 #'                       distribution = "lognormal")
-#' 
+#'
 #' ## Model fit with contrained Brody's growth coefficient
 #' ## Set up the constraint
 #' binding <- matrix(c(1:2, rep(3, 2), 4:7), ncol = 2, byrow = TRUE)
 #' rownames(binding) <- c("lnlinf", "lnk", "lnnt0", "lnsigma")
 #' colnames(binding) <- c("female", "male")
 #' ## note: lnnt0 is the natural logarithm of the negative of t0 (t0 < 0)
-#' ## starting values 
+#' ## starting values
 #' start.par <- c(c(log(30), log(25)), rep(log(0.3), 1), rep(log(1), 2), rep(log(.1), 2))
 #' start.list <- list(par = list(mixprop = 0.5, growth.par = start.par))
 #' vb.bind.fit <- vb_growth_mix(data = sim.dat, start.list = start.list,
@@ -64,13 +64,13 @@ vb_growth_mix <- function(start.list, data, binding, maxiter.em = 1e3, reltol = 
     breaks<-seq(-0.1,1.1,length=100)
     data$jitter.age <- jitter(data$age)
   }
-  ## split the data 
+  ## split the data
   classified.data <- data[data$obs.sex %in% c("female", "male"), ]
   unclassified.data <- data[data$obs.sex == "unclassified", ]
   ## define growth functions
-  female_growth_fit <- function(x){linfF * (1 - exp(-kF * (x - t0F)))}
-  male_growth_fit <- function(x){linfM * (1 - exp(-kM * (x - t0M)))}
-  ## EM ITERATIONS 
+  female_growth_fit <- function(x){linfF * (1 - exp(-kF * (x)))}# - t0F)))}
+  male_growth_fit <- function(x){linfM * (1 - exp(-kM * (x)))}# - t0M)))}
+  ## EM ITERATIONS
   for(i in 1:maxiter.em){
     if(i==1){
       par <- start.list[["par"]]
@@ -83,10 +83,10 @@ vb_growth_mix <- function(start.list, data, binding, maxiter.em = 1e3, reltol = 
     linfM <- exp(growth.par[binding["lnlinf", "male"]])
     kF <- exp(growth.par[binding["lnk", "female"]])
     kM <- exp(growth.par[binding["lnk", "male"]])
-    t0F <- - exp(growth.par[binding["lnnt0", "female"]])
-    t0M <- - exp(growth.par[binding["lnnt0", "male"]])
+    # t0F <- - exp(growth.par[binding["lnnt0", "female"]])
+    # t0M <- - exp(growth.par[binding["lnnt0", "male"]])
     sigmaF <- exp(growth.par[binding["lnsigma", "female"]])
-    sigmaM <- exp(growth.par[binding["lnsigma", "male"]])    
+    sigmaM <- exp(growth.par[binding["lnsigma", "male"]])
     ## MIXING PROPORTION
     mixprop <- par[["mixprop"]]
     ## unclassified means
@@ -103,7 +103,7 @@ vb_growth_mix <- function(start.list, data, binding, maxiter.em = 1e3, reltol = 
     ## make the complete data
     complete.data <- rbind(classified.data, unclassified.data)
     ##-----------------------------
-    ## FILL IN OBSERVED LIKELIHOOD 
+    ## FILL IN OBSERVED LIKELIHOOD
     ##-----------------------------
     ## NOTE: IF ONLY INCLUDING UNCLASSIFIED IN MIXPROP CALCULATION OMIT MIXPROP FROM CLASSIFIED
     if(distribution == "normal"){
@@ -177,8 +177,8 @@ vb_growth_mix <- function(start.list, data, binding, maxiter.em = 1e3, reltol = 
           linfM <- exp(theta[binding["lnlinf", "male"]])
           kF <- exp(theta[binding["lnk", "female"]])
           kM <- exp(theta[binding["lnk", "male"]])
-          t0F <- - exp(theta[binding["lnnt0", "female"]])
-          t0M <- - exp(theta[binding["lnnt0", "male"]])
+          # t0F <-  - exp(theta[binding["lnnt0", "female"]])
+          # t0M <- - exp(theta[binding["lnnt0", "male"]])
           sigmaF <- exp(theta[binding["lnsigma", "female"]])
           sigmaM <- exp(theta[binding["lnsigma", "male"]])
           if(estimate.mixprop){
@@ -188,11 +188,11 @@ vb_growth_mix <- function(start.list, data, binding, maxiter.em = 1e3, reltol = 
           }
           ## predicted means
           ## unclassified
-          muF.unclass <- linfF * (1 - exp(-kF * (unclassified.data$age - t0F))) 
-          muM.unclass <- linfM * (1 - exp(-kM * (unclassified.data$age - t0M))) 
-          ## classified 
-          muF.class <- linfF * (1 - exp(-kF * (classified.data$age - t0F))) 
-          muM.class <- linfM * (1 - exp(-kM * (classified.data$age - t0M))) 
+          muF.unclass <- linfF * (1 - exp(-kF * (unclassified.data$age)))# - t0F)))
+          muM.unclass <- linfM * (1 - exp(-kM * (unclassified.data$age)))# - t0M)))
+          ## classified
+          muF.class <- linfF * (1 - exp(-kF * (classified.data$age)))# - t0F)))
+          muM.class <- linfM * (1 - exp(-kM * (classified.data$age)))# - t0M)))
           if(distribution == "normal"){
             ## female classified
             ll.F.class <- sum(classified.data$obs.sex == "female") * log(mixprop) +
@@ -221,7 +221,7 @@ vb_growth_mix <- function(start.list, data, binding, maxiter.em = 1e3, reltol = 
           oll <- ll.F.class + ll.M.class + ll.miss
           return(-oll)
         }
-        ## 
+        ##
         if(estimate.mixprop){
           oll.fit <- optim(fn = oll, par = c(par[["growth.par"]], qlogis(mixprop)), hessian = TRUE, control = list(maxit = 1e4),  estimate.mixprop = TRUE, distribution = distribution, method = optim.method)
         }else{
